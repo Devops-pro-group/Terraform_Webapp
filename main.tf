@@ -1,14 +1,14 @@
-# Configure the AWS provider
 
-provider "aws" {
-  region = "us-east-1"
-}
 
+# Create a Vpc
 resource "aws_vpc" "vpc" {
   cidr_block           = "10.0.0.0/16"
   enable_dns_hostnames = true
 }
 
+
+# Create Subnets
+##########################################
 resource "aws_subnet" "public_1" {
   vpc_id            = aws_vpc.vpc.id
   cidr_block        = "10.0.1.0/24"
@@ -23,14 +23,25 @@ resource "aws_subnet" "public_2" {
   map_public_ip_on_launch = true
 }
 
+###############################################
+# Create IGW
+###############################################
+
 resource "aws_internet_gateway" "EC2InternetGateway" {
     vpc_id = aws_vpc.vpc.id
 }
+
+################################################
+# Create route Table
+################################################
 
 resource "aws_route_table" "EC2RouteTable" {
     vpc_id = aws_vpc.vpc.id
 }
 
+#################################################
+# Create routing association
+#################################################
 resource "aws_route_table_association" "rtb-association-1" {
   subnet_id      = aws_subnet.public_1.id
   route_table_id = aws_route_table.EC2RouteTable.id
@@ -41,7 +52,9 @@ resource "aws_route_table_association" "rtb-association-2" {
   route_table_id = aws_route_table.EC2RouteTable.id
 }
 
-
+##########################################################################################################################
+# Creat Aws route resource (It Provides a resource to create a routing table entry (a route) in a VPC routing table.)
+##########################################################################################################################
 
 resource "aws_route" "EC2Route" {
     destination_cidr_block = "0.0.0.0/0"
@@ -49,15 +62,25 @@ resource "aws_route" "EC2Route" {
     route_table_id = aws_route_table.EC2RouteTable.id
 }
 
+#####################################################
 # Create the ECR repository
+#####################################################
+
 resource "aws_ecr_repository" "ecs-webapp" {
   name = "ecs-webapp"
 }
 
+##############################################
 # Create the ECS cluster
+##############################################
+
 resource "aws_ecs_cluster" "ecs-webapp" {
   name = "ecs-webapp"
 }
+
+################################################
+# Create IAM role for ECS with an assume role 
+################################################
 
 resource "aws_iam_role" "ecs_task_execution_role" {
   name               = "ecs-task-execution-role"
@@ -76,6 +99,11 @@ resource "aws_iam_role" "ecs_task_execution_role" {
 }
 EOF
 }
+
+#####################################################################################################
+# Create an Iam role policy attachement for The ECS access
+#####################################################################################################
+
 resource "aws_iam_role_policy_attachment" "policy_attachment_AmazonEC2ContainerRegistryFullAccess" {
   role       = aws_iam_role.ecs_task_execution_role.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess"
